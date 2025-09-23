@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Contact Logs</title>
+    <style>
+      a {
+        text-decoration: none;
+        color: white;
+        margin-left: 4px;
+      }
+      body {
+        margin: 0;
+        font-family: monospace;
+        background: #000;
+        color: #0ea5ff;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+
+      header {
+        background: #020617;
+        padding: 1rem;
+        border-bottom: 1px solid rgba(14, 165, 255, 0.2);
+      }
+
+      main {
+        flex: 1;
+        padding: 1.5rem;
+        max-width: 1000px;
+        margin: auto;
+      }
+
+      h1 {
+        margin-bottom: 1.5rem;
+        color: #38bdf8;
+      }
+
+      .contact-card {
+        background: #0a0f1a;
+        border: 1px solid rgba(14, 165, 255, 0.2);
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+      }
+
+      .contact-card h2 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.1rem;
+        color: #0ea5ff;
+      }
+
+      .contact-info {
+        display: grid;
+        grid-template-columns: 150px 1fr;
+        gap: 0.5rem 1rem;
+        font-size: 0.9rem;
+      }
+
+      .label {
+        color: #9fdfff;
+        text-align: right;
+      }
+
+      @media (max-width: 600px) {
+        .contact-info {
+          grid-template-columns: 1fr;
+          text-align: left;
+        }
+        .label {
+          text-align: left;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1><a href="/admin/Dashboard">⬅️ Back </a> Contact Logs</h1>
+    </header>
+
+    <main>
+      <% if (contactDetails && contactDetails.length > 0) { %> <%
+      contactDetails.forEach((c, i) => { %>
+      <div class="contact-card">
+        <h2>Contact #<%= i + 1 %></h2>
+        <div class="contact-info">
+          <div class="label">Name:</div>
+          <div><%= c.ContactName %></div>
+
+          <div class="label">Phone:</div>
+          <div><%= c.ContactPhone %></div>
+
+          <div class="label">Email:</div>
+          <div><%= c.ContactEmail %></div>
+
+          <div class="label">Subject:</div>
+          <div><%= c.ContactSubject %></div>
+
+          <div class="label">Message:</div>
+          <div><%= c.ContactMessage %></div>
+          <div class="label">Operations</div>
+          <div>
+            <a href="/admin/contactDetails/delete/<%= c._id %>">Delete</a>
+          </div>
+        </div>
+      </div>
+      <% }) %> <% } else { %>
+      <p>No contact logs available.</p>
+      <% } %>
+    </main>
+  </body>
+</html>

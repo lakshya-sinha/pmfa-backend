@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Website Settings</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: monospace;
+        background: #000;
+        color: #0ea5ff;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+
+      header {
+        background: #020617;
+        padding: 1rem;
+        border-bottom: 1px solid rgba(14, 165, 255, 0.2);
+      }
+
+      main {
+        flex: 1;
+        padding: 1.5rem;
+        max-width: 900px;
+        margin: auto;
+      }
+
+      form {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      label {
+        font-size: 0.9rem;
+        margin-bottom: 0.2rem;
+        color: #9fdfff;
+      }
+
+      input,
+      textarea {
+        background: #0a0f1a;
+        border: 1px solid rgba(14, 165, 255, 0.2);
+        color: #0ea5ff;
+        padding: 0.6rem;
+        border-radius: 6px;
+        width: 100%;
+        font-family: monospace;
+      }
+
+      textarea {
+        min-height: 100px;
+      }
+
+      button {
+        background: #0ea5ff;
+        border: none;
+        color: #000;
+        font-weight: bold;
+        padding: 0.8rem;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      button:hover {
+        background: #38bdf8;
+      }
+
+      @media (max-width: 600px) {
+        main {
+          padding: 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1><a href="/admin/Dashboard">⬅️ Back</a> Admin Settings</h1>
+    </header>
+
+    <main>
+      <form method="POST" action="/admin/settings">
+        <div>
+          <label for="WebsiteName">Website Name</label>
+          <input
+            type="text"
+            name="WebsiteName"
+            id="WebsiteName"
+            value="<%= settings.WebsiteName %>"
+          />
+        </div>
+
+        <div>
+          <label for="WebsiteDesciption">Website Description</label>
+          <textarea name="WebsiteDesciption" id="WebsiteDesciption">
+<%= settings.WebsiteDesciption %></textarea
+          >
+        </div>
+
+        <div>
+          <label for="WebsiteEmail">Website Email</label>
+          <input
+            type="email"
+            name="WebsiteEmail"
+            id="WebsiteEmail"
+            value="<%= settings.WebsiteEmail %>"
+          />
+        </div>
+
+        <div>
+          <label for="WebsiteNumber">Website Number</label>
+          <input
+            type="text"
+            name="WebsiteNumber"
+            id="WebsiteNumber"
+            value="<%= settings.WebsiteNumber %>"
+          />
+        </div>
+
+        <div>
+          <label for="AboutFootballClubDes"
+            >About Football Club Description</label
+          >
+          <textarea name="AboutFootballClubDes" id="AboutFootballClubDes">
+<%= settings.AboutFootballClubDes %></textarea
+          >
+        </div>
+
+        <div>
+          <label for="OrganizeTournamentDes"
+            >Organize Tournament Description</label
+          >
+          <textarea name="OrganizeTournamentDes" id="OrganizeTournamentDes">
+<%= settings.OrganizeTournamentDes %></textarea
+          >
+        </div>
+        <div>
+          <label for="AboutTheClub">About The Club Description</label>
+          <textarea name="AboutTheClub" id="AboutTheClub">
+<%= settings.AboutTheClub %></textarea
+          >
+        </div>
+
+        <button type="submit">Save Settings</button>
+      </form>
+    </main>
+  </body>
+</html>
