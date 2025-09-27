@@ -15,6 +15,10 @@ const TrialStudentSchema = new Schema({
     type: String,
     required: true,
   },
+  individualTraining: {
+    type: String,
+    default: "Not Selected",
+  },
   DateOfBirth: {
     type: String,
     required: true,

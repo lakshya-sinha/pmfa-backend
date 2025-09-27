@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3000;
 connectDB()
   .then(
     app.listen(PORT, () => {
-      console.log("Server is Running on 8080")
+      console.log("Server is Running on ", PORT)
     })
   ).catch((err) => {
     console.error(err)
