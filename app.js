@@ -24,11 +24,13 @@ app.use(cookieParser());
 
 //* Email transporter
 const transporter = nodemailer.createTransport({
-  service: "gmail", // or custom SMTP
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true, // true for 465, false for 587
   auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS,
-  },
+    user: process.env.EMAIL_USER, // your full Gmail address
+    pass: process.env.EMAIL_PASS  // Gmail app password
+  }
 });
 
 
