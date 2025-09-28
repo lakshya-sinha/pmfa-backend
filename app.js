@@ -104,7 +104,9 @@ app.post("/login", async (req, res) => {
     return res.status(500).json({ error: "server error" });
   }
 });
-
+app.get("/", (req, res) => {
+  res.redirect("/login");
+})
 // logout
 app.get("/logout", (req, res) => {
   res.clearCookie(COOKIE_NAME);
