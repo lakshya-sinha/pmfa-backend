@@ -337,7 +337,7 @@ app.post("/api/v1/saveTrialStudents", async (req, res) => {
       });
     }
 
-    res.redirect("http://localhost:5500/");
+    res.redirect(req.originalUrl.replace("/api/v1/saveTrialStudents", "/"));
   } catch (error) {
     console.error(error);
     res.status(500).send("Error saving trial student or sending mail");
@@ -376,7 +376,7 @@ app.post("/api/v1/saveContactDetails", async (req, res) => {
       });
     }
 
-    res.redirect("http://localhost:5500/");
+     res.redirect(req.originalUrl.replace("/api/v1/saveTrialStudents", "/"));
   } catch (error) {
     console.error(error);
     res.status(500).send("Error saving contact details or sending mail");
