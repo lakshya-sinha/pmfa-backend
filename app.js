@@ -337,7 +337,7 @@ app.post("/api/v1/saveTrialStudents", async (req, res) => {
       });
     }
 
-  es.redirect(req.headers.origininalUrl);
+  res.redirect(req.headers.origininalUrl);
   } catch (error) {
     console.error(error);
     res.status(500).send("Error saving trial student or sending mail");
