@@ -202,7 +202,12 @@
   <body>
     <header>
       <h1>Admin Dashboard</h1>
-      <button id="logout">Logout</button>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button id="notificationToggleBtn">Enable Notifications</button>
+        <button id="notificationResetBtn">Reset Notifications</button>
+        <button id="notificationTestBtn">Send Test Push</button>
+        <button id="logout">Logout</button>
+      </div>
     </header>
 
     <main>
@@ -265,7 +270,21 @@
         window.location.href = "/login";
       };
 
-      checkAuth();
+  // checkAuth() was removed / not defined in this file. If you need auth checks on the client,
+  // implement them here. For now we don't call any undefined functions.
+    </script>
+    <script src="/js/notifications.js"></script>
+    <script>
+      document.getElementById('notificationTestBtn').onclick = async () => {
+        try {
+          const resp = await fetch('/admin/testPush', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: 'Admin Test', body: 'This is a test from the dashboard' }) });
+          const data = await resp.json();
+          if (data && data.ok) alert('Test push sent'); else alert('Failed to send test push');
+        } catch (e) {
+          console.error('Test push error', e);
+          alert('Test push error: ' + e.message);
+        }
+      };
     </script>
   </body>
 </html>

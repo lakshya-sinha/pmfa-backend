@@ -5,11 +5,12 @@ import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import nodemailer from "nodemailer";
 
 import TrialStudent from "./models/TrialStudent.js";
 import WebsiteSetting from "./models/websiteSetting.js";
 import ContactDetail from "./models/contactDetail.js";
+import NotificationSubscriber from "./models/NotificationSubscriber.js";
+import webpush from "web-push";
 
 const app = express();
 
@@ -22,25 +23,17 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-//* Email transporter
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true, // true for 465, false for 587
-  auth: {
-    user: process.env.EMAIL_USER, // your full Gmail address
-    pass: process.env.EMAIL_PASS  // Gmail app password
-  }
-});
+// VAPID keys from environment only
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+const VAPID_READY = VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY;
 
+if (!VAPID_READY) {
+  console.error('VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY must be set in environment variables (.env file)');
+  // Don't exit(1) here, let the app run without push capability
+}
 
-transporter.verify((error, success) => {
-  if (error) {
-    console.error("Email connection error:", error);
-  } else {
-    console.log("Server is ready to send emails:", success);
-  }
-});
+// Email sending removed — pushing notifications are used instead.
 
 
 //* ENV variables
@@ -53,6 +46,56 @@ const HASH = process.env.ADMIN_PASSWORD_HASH; // bcrypt hash from .env
 if (!JWT_SECRET || !HASH) {
   console.error("Missing JWT_SECRET or ADMIN_PASSWORD_HASH in .env");
   process.exit(1);
+}
+
+// Configure web-push if VAPID keys are present
+if (VAPID_READY) {
+  try {
+    webpush.setVapidDetails(
+      process.env.VAPID_SUBJECT || 'mailto:' + (process.env.EMAIL_USER || ''),
+      VAPID_PUBLIC_KEY,
+      VAPID_PRIVATE_KEY
+    );
+  } catch (e) {
+    console.error('Failed to set VAPID details for web-push', e);
+    console.error('Please check your VAPID key format.');
+  }
+} else {
+  console.warn('VAPID keys are not available; push notifications will be disabled.');
+}
+
+// helper to send push notifications to all subscribers
+async function sendPushToAll(payload) {
+  try {
+    console.log('[push] Sending push notification:', payload);
+    const subs = await NotificationSubscriber.find();
+    console.log('[push] Found subscriptions:', subs.length);
+    
+    const sendPromises = subs.map(async (s) => {
+      console.log('[push] Sending to endpoint:', s.endpoint);
+      const pushSub = {
+        endpoint: s.endpoint,
+        keys: {
+          p256dh: s.keys.p256dh,
+          auth: s.keys.auth,
+        },
+      };
+      try {
+        await webpush.sendNotification(pushSub, JSON.stringify(payload));
+        console.log('[push] Successfully sent to:', s.endpoint);
+      } catch (err) {
+        // If subscription is no longer valid, remove it
+        if (err.statusCode === 410 || err.statusCode === 404) {
+          console.log('[push] Removing invalid subscription:', s.endpoint);
+          return NotificationSubscriber.deleteOne({ endpoint: s.endpoint });
+        }
+        console.error('[push] Send error:', err);
+      }
+    });
+    await Promise.all(sendPromises);
+  } catch (e) {
+    console.error('[push] Error sending to subscribers:', e);
+  }
 }
 
 // helper to sign token
@@ -120,6 +163,70 @@ app.get("/admin/dashboard", requireAdmin, async (req, res) => {
   const ContactCount = await ContactDetail.countDocuments();
   const trialCount = await TrialStudent.countDocuments();
   res.render("dashboard", { trialCount, ContactCount });
+});
+
+// Expose VAPID public key to admin UI
+app.get('/admin/getVapidPublicKey', requireAdmin, (req, res) => {
+  if (!VAPID_READY || !VAPID_PUBLIC_KEY) return res.status(404).send('');
+  res.send(VAPID_PUBLIC_KEY);
+});
+
+// Save a subscription
+app.post('/admin/saveSubscription', requireAdmin, async (req, res) => {
+  try {
+    const sub = req.body;
+    if (!sub || !sub.endpoint || !sub.keys) return res.status(400).json({ error: 'invalid subscription' });
+    await NotificationSubscriber.updateOne(
+      { endpoint: sub.endpoint },
+      { endpoint: sub.endpoint, keys: sub.keys },
+      { upsert: true }
+    );
+    res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'server error' });
+  }
+});
+
+// Remove a subscription by endpoint
+app.post('/admin/removeSubscription', requireAdmin, async (req, res) => {
+  try {
+    const { endpoint } = req.body;
+    if (!endpoint) return res.status(400).json({ error: 'endpoint required' });
+    await NotificationSubscriber.deleteOne({ endpoint });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'server error' });
+  }
+});
+
+// Reset (delete) all subscriptions - admin action
+app.post('/admin/resetSubscriptions', requireAdmin, async (req, res) => {
+  try {
+    await NotificationSubscriber.deleteMany({});
+    res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'server error' });
+  }
+});
+
+// Admin test push endpoint to send a test notification to all subscribers
+app.post('/admin/testPush', requireAdmin, async (req, res) => {
+  try {
+    if (!VAPID_READY) return res.status(400).json({ error: 'VAPID not configured' });
+    const payload = {
+      title: req.body.title || 'Test Notification',
+      body: req.body.body || 'This is a test push notification',
+      url: req.body.url || '/admin'
+    };
+    await sendPushToAll(payload);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('Error sending test push', e);
+    res.status(500).json({ error: 'server error' });
+  }
 });
 
 // protected admin route
@@ -218,21 +325,17 @@ app.post("/api/v1/saveTrialStudents", async (req, res) => {
     });
     await newTrial.save();
 
-    // send email notification
-    await transporter.sendMail({
-      from: process.env.MAIL_USER,
-      to: process.env.MAIL_USER,
-      subject: "🎉 New Trial Student Registration",
-      text: `
-        New Trial Student Registered:
+    // previously an email was sent here; nodemailer removed. Log for audit instead.
+    console.log('New trial student registered', { PlayerName, PhoneNumber, SelectedCenter, DateOfBirth, individualTraining });
 
-        Name: ${PlayerName}
-        Phone: ${PhoneNumber}
-        Center: ${SelectedCenter}
-        DOB: ${DateOfBirth}
-        Location If Selected: ${individualTraining}
-      `,
-    });
+    // send web-push notification to subscribed admins (if configured)
+    if (VAPID_READY) {
+      sendPushToAll({
+        title: 'New Trial Student',
+        body: `Name: ${PlayerName} | Phone: ${PhoneNumber}`,
+        url: '/admin/trialStudents'
+      });
+    }
 
     res.redirect("http://localhost:5500/");
   } catch (error) {
@@ -261,21 +364,17 @@ app.post("/api/v1/saveContactDetails", async (req, res) => {
     });
     await newContactDetails.save();
 
-    // send email notification
-    await transporter.sendMail({
-      from: process.env.MAIL_USER,
-      to: process.env.MAIL_USER,
-      subject: "📩 New Contact Form Submission",
-      text: `
-        New Contact Form Submitted:
+    // previously an email was sent here; nodemailer removed. Log the contact for audit.
+    console.log('New contact form submitted', { ContactName, ContactPhone, ContactEmail, ContactSubject, ContactMessage });
 
-        Name: ${ContactName}
-        Phone: ${ContactPhone}
-        Email: ${ContactEmail}
-        Subject: ${ContactSubject}
-        Message: ${ContactMessage}
-      `,
-    });
+    // send web-push notification to subscribed admins (if configured)
+    if (VAPID_READY) {
+      sendPushToAll({
+        title: 'New Contact Form',
+        body: `Name: ${ContactName} | Subject: ${ContactSubject}`,
+        url: '/admin/contactDetails'
+      });
+    }
 
     res.redirect("http://localhost:5500/");
   } catch (error) {
